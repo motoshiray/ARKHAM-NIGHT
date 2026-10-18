@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arkham Night · 阿卡姆夜桌</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=DotGothic16&family=Silkscreen&display=swap" rel="stylesheet">
+<style>
+/* ===== 皮：想换外观只改这一段 ===== */
+:root {
+  --bg: #120e1c;
+  --panel: rgba(24, 18, 38, 0.86);
+  --panel-2: rgba(44, 34, 66, 0.9);
+  --ink: #ece4d2;
+  --dim: #a99cc4;
+  --line: #8a6d45;     /* 细金框 */
+  --line-soft: #4b3c66;
+  --backdrop: url("/assets/backdrop-mansion.webp");
+  --accent: #6fd3a8;
+  /* 座位颜色：默认值，players.json 里的 color 会覆盖 */
+  --player1: #f2a6c8;
+  --player2: #7fb8ff;
+  --keeper: #b9a3ff;
+  --good: #8be38b;
+  --bad: #ff6b6b;
+  --gold: #ffd36b;
+  --px: 4px;           /* 一个“像素”的大小 */
+  --font: "DotGothic16", "PingFang SC", "Hiragino Sans GB", monospace;
+  --font-latin: "Cinzel", "Silkscreen", var(--font);
+}
+/* 背景两层：底下一张铺满、糊掉，用来填边；上面一张整图完整放下，不裁 */
+body::before, body::after {
+  content: ""; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  background: var(--backdrop) center / cover no-repeat;
+  filter: blur(24px) saturate(0.5) brightness(0.6);
+  transform: scale(1.1);
+}
+body::after {
+  z-index: -1; transform: none;
+  background:
+    linear-gradient(180deg, rgba(22, 16, 40, 0.45), rgba(22, 16, 40, 0.72)),
+    var(--backdrop) center / contain no-repeat;
+  filter: saturate(0.55) brightness(0.9);
+}
+.box { border-width: 1px !important; outline: 1px solid var(--line-soft); outline-offset: 3px; box-shadow: 0 6px 24px #0008 !important; backdrop-filter: blur(2px); }
+#sceneImg { width: 100%; display: block; border: 1px solid var(--line); image-rendering: pixelated; }
+.avatar { width: 56px; height: 56px; float: left; margin: 0 10px 4px 0; border: 1px solid var(--line); image-rendering: pixelated; }
+/* ===== 皮到此为止 ===== */
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg);
+  position: relative; z-index: 0;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.box {
+  background: var(--panel);
+  border: var(--px) solid var(--line);
+  box-shadow: var(--px) var(--px) 0 #000;
+}
+button, input, select, textarea {
+  font: inherit; color: var(--ink); background: var(--panel-2);
+  border: 2px solid var(--line); padding: 4px 8px;
+}
+button { cursor: pointer; box-shadow: 2px 2px 0 #000; }
+button:active { transform: translate(2px, 2px); box-shadow: none; }
+button:hover { border-color: var(--accent); }
+
+header {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 16px; border-bottom: var(--px) solid var(--line);
+}
+header h1 { font-family: var(--font-latin); font-size: 18px; margin: 0; letter-spacing: 1px; }
+header h1 small { font-family: var(--font); color: var(--dim); font-size: 13px; margin-left: 8px; }
+header .sp { flex: 1; }
+#home { color: var(--dim); text-decoration: none; font-size: 13px; border: 1px solid var(--line-soft); padding: 2px 10px; }
+#home:hover { color: var(--ink); border-color: var(--line); }
+#sound, #rain { font-size: 13px; padding: 2px 10px; color: var(--dim); opacity: .7; }
+#sound.on, #rain.on { color: var(--gold); border-color: var(--line); opacity: 1; }
+#safe { background: #3a1a22; border-color: var(--bad); }
+
+main {
+  display: grid; gap: 14px; padding: 14px 16px;
+  grid-template-columns: 300px 1fr 320px;
+  height: calc(100% - 60px);
+}
+.col { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+/* 手机：一列排下来，顺序是 场景 → 记录 → 角色卡 → 札记 → 守密人抽屉；记录自己在框里滚，不把页面撑长 */
+@media (max-width: 1000px) {
+  main { display: flex; flex-direction: column; height: auto; padding: 10px; gap: 10px; }
+  .col { display: contents; }
+  #sceneBox { order: 1; display: grid; grid-template-columns: 96px 1fr; column-gap: 10px; align-content: center; padding: 8px; }
+  #sceneBox #sceneImg, #sceneBox #art { width: 96px; grid-row: span 2; }
+  #sceneTitle { margin: 0; font-size: 15px; }
+  #logBox { order: 2; min-height: 0; }
+  #logBox #log { height: 58vh; flex: none; }
+  #sheets > .box { order: 3; }
+  #notesBox { order: 4; min-height: 0; }
+  #notesBox #notes { max-height: 40vh; flex: none; }
+  #kp { order: 5; }
+  header { padding: 8px 10px; gap: 8px; }
+  header h1 { font-size: 14px; }
+  header h1 small { display: block; margin: 0; }
+}
+.box { padding: 12px; }
+h2 { font-size: 14px; color: var(--dim); margin: 0 0 8px; font-weight: normal; }
+
+/* 场景 */
+#art { width: 100%; image-rendering: pixelated; display: block; background: #000; border: 2px solid #000; }
+#sceneTitle { font-size: 17px; margin: 8px 0 0; }
+#scenePlace { color: var(--dim); font-size: 13px; }
+
+/* 记录 */
+#logBox { flex: 1; display: flex; flex-direction: column; min-height: 360px; }
+#log { flex: 1; overflow-y: auto; padding-right: 6px; }
+.e { margin: 0 0 10px; padding: 6px 8px; border-left: var(--px) solid var(--line); background: #0002; white-space: pre-wrap; word-break: break-word; }
+.e .who { font-weight: bold; margin-right: 6px; }
+.e.player1 { border-color: var(--player1); } .e.player1 .who { color: var(--player1); }
+.e.player2 { border-color: var(--player2); } .e.player2 .who { color: var(--player2); }
+.e.keeper { border-color: var(--keeper); } .e.keeper .who { color: var(--keeper); }
+.e.narrate { background: #b9a3ff14; font-size: 16px; }
+.e.ooc { opacity: .7; font-size: 13px; }
+.e.ooc::before { content: "[场外] "; color: var(--dim); }
+.e.check, .e.dice { background: #ffd36b10; }
+.e.scene { text-align: center; color: var(--gold); border: none; background: none; }
+.e.hidden { color: var(--dim); font-style: italic; }
+.e.turn_ready { color: var(--gold); border-color: var(--gold); text-align: center; }
+.e.pause { color: var(--bad); border-color: var(--bad); text-align: center; }
+.e.resume { color: var(--good); text-align: center; }
+.e.san { color: var(--accent); }
+.g-critical, .g-extreme { color: var(--gold); }
+.g-hard, .g-regular { color: var(--good); }
+.g-fail { color: var(--dim); }
+.g-fumble { color: var(--bad); }
+.big { font-family: var(--font-latin); font-size: 20px; }
+.t { color: var(--dim); font-size: 11px; float: right; }
+
+#say { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+#say textarea { flex: 1; min-width: 200px; height: 64px; resize: vertical; }
+#say .btns { display: flex; flex-direction: column; gap: 6px; }
+#readyKeeper { float: right; font-size: 12px; padding: 0 6px; margin-left: 6px; }
+#readyKeeper.waiting { color: var(--gold); border-color: var(--gold); cursor: default; }
+
+/* 角色卡 */
+.sheet .name { font-size: 17px; }
+.sheet .occ { color: var(--dim); font-size: 13px; }
+.bar { display: flex; align-items: center; gap: 6px; margin: 4px 0; font-size: 13px; }
+.bar b { width: 34px; font-family: var(--font-latin); font-size: 11px; }
+.cells { display: flex; gap: 2px; flex-wrap: wrap; flex: 1; }
+.cells i { width: 8px; height: 12px; background: #0006; display: block; }
+.cells i.on { background: currentColor; }
+.bar.hp { color: var(--bad); } .bar.mp { color: #7fb8ff; } .bar.san { color: var(--accent); }
+.bar span { color: var(--ink); min-width: 52px; text-align: right; }
+.skills { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 8px; }
+.skills button { display: flex; justify-content: space-between; font-size: 13px; padding: 2px 6px; }
+.rollopts { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; align-items: center; font-size: 13px; }
+.rollopts input { width: 80px; }
+.sheet.player1 .name { color: var(--player1); } .sheet.player2 .name { color: var(--player2); }
+.edit { font-size: 12px; float: right; padding: 0 6px; }
+.editor textarea { width: 100%; height: 220px; font-size: 12px; font-family: monospace; }
+
+/* 调查札记 */
+#notesBox { flex: 1; min-height: 160px; display: flex; flex-direction: column; }
+#notes { flex: 1; overflow-y: auto; margin: 0; padding-left: 22px; font-size: 13px; line-height: 1.55; }
+#notes li { margin-bottom: 7px; white-space: pre-wrap; word-break: break-word; }
+#notes li::marker { color: var(--line); }
+#notes li.player1 { color: #f5d4e3; }
+#notes li .x { color: var(--dim); cursor: pointer; margin-left: 4px; font-size: 11px; opacity: 0; }
+#notes li:hover .x { opacity: 1; }
+#noteAdd { display: flex; gap: 6px; margin-top: 8px; }
+#noteAdd input { flex: 1; min-width: 0; font-size: 13px; }
+body.is-keeper #noteAdd { display: none; }
+
+/* 守密人面板 */
+#kp { display: none; border-color: var(--keeper); }
+body.is-keeper #kp { display: block; }
+#kp label { display: block; font-size: 13px; color: var(--dim); margin-top: 6px; }
+#kp input, #kp select { width: 100%; }
+
+/* 暂停 */
+#paused {
+  display: none; position: fixed; inset: 0; background: #000d; z-index: 9;
+  align-items: center; justify-content: center; flex-direction: column; gap: 16px; text-align: center;
+}
+#paused.on { display: flex; }
+#paused .msg { font-size: 22px; color: var(--ink); }
+#err { color: var(--bad); font-size: 13px; min-height: 1em; }
+</style>
+</head>
+<body>
+<header>
+  <a href="/" id="home" title="回到首页">← 首页</a>
+  <h1>ARKHAM NIGHT <small id="saveName">阿卡姆夜桌</small></h1>
+  <button id="sound" data-ambient title="背景音乐">♪</button>
+  <button id="rain" data-ambient title="雨声">🌧</button>
+  <span class="sp"></span>
+  <label>我是
+    <select id="me">
+      <option value="player1">调查员 A</option>
+      <option value="player2">调查员 B</option>
+      <option value="keeper">守密人</option>
+    </select>
+  </label>
+  <button id="safe" title="安全暂停：整桌立刻停下，不问理由">🛟 叫停</button>
+</header>
+
+<main>
+  <section class="col">
+    <div class="box" id="sceneBox">
+      <img id="sceneImg" alt="" hidden>
+      <canvas id="art" width="96" height="60"></canvas>
+      <div id="sceneTitle">开场之前</div>
+      <div id="scenePlace">桌边</div>
+    </div>
+    <div class="box" id="notesBox">
+      <h2>📓 调查札记</h2>
+      <ol id="notes"></ol>
+      <div id="noteAdd"><input id="noteText" placeholder="记一条线索……"><button id="noteBtn">记</button></div>
+    </div>
+    <div class="box" id="kp">
+      <h2>守密人抽屉</h2>
+      <label>场景标题 <input id="kpTitle" placeholder="雾中老宅"></label>
+      <label>地点 <input id="kpPlace" placeholder="波士顿 · 1920 年代"></label>
+      <label>画面
+        <select id="kpArt">
+          <option value="office">侦探事务所</option>
+          <option value="street">雨夜街道</option>
+          <option value="library">图书馆 / 档案室</option>
+          <option value="hall">市政厅</option>
+          <option value="chapel">教堂废墟</option>
+          <option value="house">老宅外观</option>
+          <option value="parlor">老宅客厅</option>
+          <option value="corridor">二楼走廊</option>
+          <option value="basement">地下室</option>
+          <option value="lamp">黑暗中的一盏灯</option>
+          <option value="harbor">港口</option>
+          <option value="table">桌边烛光（像素）</option>
+          <option value="dark">黑暗中的红眼（像素）</option>
+        </select>
+      </label>
+      <div style="margin-top:8px"><button id="kpScene">换场景</button></div>
+      <label style="margin-top:12px">暗骰 · 目标值 <input id="kpHiddenTarget" type="number" min="1" max="99" value="50"></label>
+      <div style="margin-top:6px"><button id="kpHidden">幕后掷一次</button></div>
+    </div>
+  </section>
+
+  <section class="col">
+    <div class="box" id="logBox">
+      <h2>记录
+        <button id="copyKeeper" style="float:right;font-size:12px;padding:0 6px" title="把上次复制之后的新记录和两张角色卡复制下来，贴给不在网页上的守密人（比如另一个聊天窗口里的 AI 守密人）">📋 复制给守密人</button>
+        <button id="readyKeeper" title="你们商量好这一轮行动后按一次；守密人会看到确认">🔔 行动确认 · 请守密人主持</button>
+      </h2>
+      <div id="log"></div>
+      <div id="say">
+        <textarea id="text" placeholder="你的调查员要做什么、说什么……（Ctrl/⌘+Enter 发送）"></textarea>
+        <div class="btns">
+          <select id="kind">
+            <option value="say">角色</option>
+            <option value="ooc">场外</option>
+            <option value="narrate" id="optNarrate">旁白</option>
+          </select>
+          <button id="send">发送</button>
+        </div>
+      </div>
+      <div id="err"></div>
+    </div>
+  </section>
+
+  <section class="col" id="sheets"></section>
+</main>
+
+<div id="paused">
+  <div class="msg">🛟 叫停<br><small id="pausedBy"></small></div>
+  <div style="color:var(--dim);font-size:14px">桌子停下了。先顾人，故事等着。</div>
+  <button id="resume">好了，可以继续</button>
+</div>
+
+<script src="/assets/ambient.js"></script>
+<script>
+// 座位固定是 player1 / player2 / keeper；名字、颜色、头像从服务器的 players.json 来。
+const INV = ["player1", "player2"];
+let PLAYERS = {}, NAMES = { player1: "调查员 A", player2: "调查员 B", keeper: "守密人" };
+let SAVE = new URLSearchParams(location.search).get("save") || "";
+const $ = (s) => document.querySelector(s);
+let me = new URLSearchParams(location.search).get("who");
+try { me = me || localStorage.getItem("arkham-night-me"); } catch (e) {}
+if (!NAMES[me]) me = "player1";
+$("#me").value = me;
+let lastId = 0, state = { sheets: {}, scene: {}, table: {} }, editing = null;
+
+function applyMe() {
+  document.body.classList.toggle("is-keeper", me === "keeper");
+  $("#optNarrate").disabled = me !== "keeper";
+  $("#readyKeeper").hidden = me === "keeper";
+  if (me !== "keeper" && $("#kind").value === "narrate") $("#kind").value = "say";
+  if (me === "keeper") $("#kind").value = "narrate";
+  renderSheets();
+}
+$("#me").onchange = () => {
+  me = $("#me").value;
+  try { localStorage.setItem("arkham-night-me", me); } catch (e) {}
+  applyMe();
+};
+
+async function post(path, body) {
+  $("#err").textContent = "";
+  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ who: me, save: SAVE || undefined, ...body }) });
+  const j = await r.json();
+  if (!j.ok) { $("#err").textContent = j.error; throw new Error(j.error); }
+  await poll();
+  return j.data;
+}
+
+/* ---------- 记录 ---------- */
+function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function applyPlayers(players) {
+  const key = JSON.stringify(players); if (!players || key === JSON.stringify(PLAYERS)) return;
+  PLAYERS = players;
+  for (const [k, p] of Object.entries(players)) {
+    NAMES[k] = p.name;
+    if (p.color) document.documentElement.style.setProperty(`--${k}`, p.color);
+    const opt = $(`#me option[value="${k}"]`);
+    if (opt) opt.textContent = `${p.name} · ${p.role === "keeper" ? "守密人" : "调查员"}`;
+  }
+  renderSheets();
+}
+function sheetName(k) { return (state.sheets[k] && state.sheets[k].name) || NAMES[k]; }
+function entryHTML(e) {
+  const t = `<span class="t">${(e.at || "").slice(11, 16)}</span>`;
+  const who = `<span class="who">${esc(NAMES[e.who] || e.who)}</span>`;
+  switch (e.type) {
+    case "check": {
+      const bonus = e.bonus > 0 ? ` · 奖励骰×${e.bonus}` : e.bonus < 0 ? ` · 惩罚骰×${-e.bonus}` : "";
+      const cands = e.detail && e.detail.candidates.length > 1 ? ` <span style="color:var(--dim)">(${e.detail.candidates.join(" / ")})</span>` : "";
+      return `${t}${who}🎲 ${esc(e.label)}（${e.target}${bonus}）→ <span class="big g-${e.grade}">${e.result}</span>${cands} <b class="g-${e.grade}">${e.grade_name}</b>`;
+    }
+    case "dice":
+      return `${t}${who}🎲 ${esc(e.label)} ${esc(e.expr)} → <span class="big">${e.total}</span> <span style="color:var(--dim)">[${e.rolls.join(", ")}]</span>`;
+    case "scene": return `— ${esc(e.text)} —`;
+    case "san": return `${t}🧠 ${esc(sheetName(e.target))} 的理智 ${e.from} → <b>${e.to}</b>`;
+    case "hidden": case "pause": case "resume": return `${t}${esc(e.text)}`;
+    default: return `${t}${who}${esc(e.text).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")}`;
+  }
+}
+function addEntries(list) {
+  const log = $("#log");
+  const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 60;
+  for (const e of list) {
+    const div = document.createElement("div");
+    div.className = `e ${e.type} ${e.who || ""}`;
+    div.innerHTML = entryHTML(e);
+    log.appendChild(div);
+    allEntries.push(e);
+    lastId = Math.max(lastId, e.id);
+  }
+  if (list.length && (atBottom || lastId === list[list.length - 1].id)) log.scrollTop = log.scrollHeight;
+}
+
+/* ---------- 角色卡 ---------- */
+function bar(cls, label, [cur, max]) {
+  const n = Math.min(max, 30), on = Math.round((cur / max) * n);
+  let cells = ""; for (let i = 0; i < n; i++) cells += `<i class="${i < on ? "on" : ""}"></i>`;
+  return `<div class="bar ${cls}"><b>${label}</b><div class="cells">${cells}</div><span>${cur}/${max}</span></div>`;
+}
+function renderSheets() {
+  const box = $("#sheets"); box.innerHTML = "";
+  for (const k of INV) {
+    const s = state.sheets[k]; if (!s) continue;
+    const mine = me === k || me === "keeper";
+    const div = document.createElement("div");
+    div.className = `box sheet ${k}`;
+    if (editing === k) {
+      div.innerHTML = `<h2>编辑 ${NAMES[k]} 的卡</h2><div class="editor"><textarea>${esc(JSON.stringify(s, null, 2))}</textarea></div>
+        <button data-save>保存</button> <button data-cancel>取消</button>`;
+      div.querySelector("[data-save]").onclick = async () => {
+        try { await post("/api/sheet", { target: k, patch: JSON.parse(div.querySelector("textarea").value) }); editing = null; renderSheets(); }
+        catch (e) { $("#err").textContent = "保存失败：" + e.message; }
+      };
+      div.querySelector("[data-cancel]").onclick = () => { editing = null; renderSheets(); };
+      box.appendChild(div); continue;
+    }
+    const skills = Object.entries(s.skills).map(([n, v]) => `<button data-skill="${esc(n)}" data-v="${v}" ${me === k ? "" : "disabled"}><span>${esc(n)}</span><span>${v}</span></button>`).join("");
+    div.innerHTML = `
+      ${mine ? `<button class="edit" data-edit>改</button>` : ""}
+      ${PLAYERS[k] && PLAYERS[k].avatar ? `<img class="avatar" src="${esc(PLAYERS[k].avatar)}" alt="" onerror="this.remove()">` : ""}
+      <div class="name">${esc(s.name || "（还没起名）")}</div>
+      <div class="occ">${esc(s.occupation || NAMES[k] + " 的调查员")} · 幸运 ${s.luck}</div>
+      <div style="clear:both"></div>
+      ${bar("hp", "HP", s.hp)}${bar("mp", "MP", s.mp)}${bar("san", "SAN", s.san)}
+      <div class="skills">${skills}
+        <button data-skill="理智" data-v="${s.san[0]}" ${me === k ? "" : "disabled"}><span>理智检定</span><span>${s.san[0]}</span></button>
+        <button data-skill="幸运" data-v="${s.luck}" ${me === k ? "" : "disabled"}><span>幸运</span><span>${s.luck}</span></button>
+      </div>
+      ${me === k ? `<div class="rollopts">
+        <select data-bonus><option value="0">普通</option><option value="1">奖励骰</option><option value="2">奖励骰×2</option><option value="-1">惩罚骰</option><option value="-2">惩罚骰×2</option></select>
+        <input data-expr placeholder="1d6+1"><button data-dice>掷</button>
+        <button data-quick="3d6">3d6</button><button data-quick="2d6+6">2d6+6</button>
+      </div>` : ""}
+      ${s.notes ? `<div class="occ" style="margin-top:6px;white-space:pre-wrap">${esc(s.notes)}</div>` : ""}`;
+    div.querySelectorAll("[data-skill]").forEach((b) => b.onclick = () => {
+      const bonus = +(div.querySelector("[data-bonus]") || { value: 0 }).value;
+      post("/api/roll", { label: b.dataset.skill, target: +b.dataset.v, bonus });
+    });
+    const dice = div.querySelector("[data-dice]");
+    if (dice) dice.onclick = () => {
+      const ex = div.querySelector("[data-expr]").value.trim();
+      if (!ex) { $("#err").textContent = "框里先写骰子，比如 3d6 或 1d6+1"; return; }
+      post("/api/roll", { label: "掷骰", expr: ex });
+    };
+    div.querySelectorAll("[data-quick]").forEach((b) => b.onclick = () => post("/api/roll", { label: "掷骰", expr: b.dataset.quick }));
+    const ed = div.querySelector("[data-edit]");
+    if (ed) ed.onclick = () => { editing = k; renderSheets(); };
+    box.appendChild(div);
+  }
+}
+
+/* ---------- 像素场景 ---------- */
+const PAL = { sky: "#1b1730", moon: "#f3eed2", fog: "#3a3552", wall: "#2d2638", roof: "#151019", win: "#ffd36b", ground: "#0f0c14", wood: "#5a3d2b", flame: "#ffb347", book: ["#7a2f3b", "#2f5d7a", "#4b7a2f", "#7a6a2f"], rain: "#6a7fa8", stone: "#3b3546" };
+// 场景图都在 assets/ 里；table / dark 是下面 drawArt 现画的像素小画
+const SCENE_IMG = {
+  office: "scene-office.webp", street: "scene-street.webp", library: "scene-library.webp",
+  hall: "scene-hall.webp", chapel: "scene-chapel.webp", house: "scene-house.webp",
+  parlor: "scene-parlor.webp", corridor: "scene-corridor.webp", basement: "scene-basement.webp",
+  lamp: "scene-lamp.webp", harbor: "scene-harbor.png",
+};
+function drawArt(kind) {
+  const img = $("#sceneImg");
+  if (SCENE_IMG[kind]) {
+    img.src = `/assets/${SCENE_IMG[kind]}`; img.hidden = false; $("#art").hidden = true;
+    return;
+  }
+  img.hidden = true; $("#art").hidden = false;
+  const c = $("#art"), g = c.getContext("2d"), W = c.width, H = c.height;
+  const px = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+  let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  px(0, 0, W, H, PAL.sky);
+  if (kind === "dark") { px(0, 0, W, H, "#050407"); px(44, 28, 2, 1, "#ff6b6b"); px(50, 28, 2, 1, "#ff6b6b"); return; }
+  if (kind === "house" || kind === "street") {
+    for (let i = 0; i < 30; i++) px(Math.floor(rnd() * W), Math.floor(rnd() * 25), 1, 1, "#ffffff55");
+    px(74, 6, 8, 8, PAL.moon); px(73, 8, 1, 4, PAL.moon); px(82, 8, 1, 4, PAL.moon); px(76, 5, 4, 1, PAL.moon); px(76, 14, 4, 1, PAL.moon);
+  }
+  if (kind === "house") {
+    px(0, 50, W, 10, PAL.ground);
+    px(26, 24, 40, 28, PAL.wall);
+    for (let i = 0; i < 12; i++) px(24 + i * 2 - 0, 24 - i, 44 - i * 4, 1, PAL.roof);
+    px(56, 10, 4, 10, PAL.roof);
+    px(32, 30, 6, 6, PAL.win); px(54, 30, 6, 6, "#2a2240"); px(43, 40, 6, 12, "#120d18");
+    px(34, 30, 1, 6, PAL.wall); px(32, 32, 6, 1, PAL.wall);
+    px(8, 38, 2, 14, "#1a1420"); px(5, 34, 8, 6, "#1a1420"); px(80, 40, 2, 12, "#1a1420"); px(77, 36, 8, 5, "#1a1420");
+    px(0, 48, W, 2, PAL.fog + "aa");
+  } else if (kind === "street") {
+    px(0, 44, W, 16, "#16131d");
+    px(4, 18, 22, 28, PAL.wall); px(64, 14, 28, 32, PAL.wall);
+    px(8, 24, 4, 4, PAL.win); px(70, 20, 4, 4, PAL.win); px(80, 30, 4, 4, PAL.win);
+    px(44, 20, 2, 26, "#222"); px(42, 18, 6, 3, "#333"); px(43, 21, 4, 2, PAL.win);
+    px(38, 46, 14, 3, "#ffd36b33");
+    for (let i = 0; i < 40; i++) px(Math.floor(rnd() * W), Math.floor(rnd() * H), 1, 2, PAL.rain + "88");
+  } else if (kind === "library") {
+    px(0, 0, W, H, "#1d1612");
+    for (let s = 0; s < 3; s++) for (let x = 4; x < W - 4; x += 3) px(x, 8 + s * 14, 2, 10 - (x % 4), PAL.book[(x + s) % 4]);
+    for (let s = 0; s < 4; s++) px(2, 18 + s * 14, W - 4, 2, PAL.wood);
+    px(36, 48, 24, 3, PAL.wood); px(46, 44, 4, 4, "#ddd"); px(47, 42, 2, 2, PAL.flame);
+  } else if (kind === "basement") {
+    px(0, 0, W, H, "#0b090f");
+    for (let i = 0; i < 8; i++) px(10 + i * 6, 20 + i * 5, 16, 5, PAL.stone);
+    px(70, 30, 16, 26, "#1c1520"); px(72, 32, 12, 24, PAL.wood); px(81, 44, 2, 2, PAL.gold || "#ffd36b");
+    px(0, 0, W, 6, "#000");
+  } else { // table
+    px(0, 0, W, H, "#120f18");
+    px(10, 40, 76, 6, PAL.wood); px(14, 46, 4, 14, PAL.wood); px(78, 46, 4, 14, PAL.wood);
+    px(46, 30, 4, 10, "#e8e0c8"); px(47, 26, 2, 4, PAL.flame); px(47, 25, 2, 1, "#fff2");
+    for (let r = 14; r > 0; r -= 2) { g.fillStyle = "#ffb34708"; g.beginPath(); g.arc(48, 28, r * 2, 0, 7); g.fill(); }
+    px(24, 36, 10, 4, "#d9cfa9"); px(60, 37, 4, 3, "#7fb8ff"); px(66, 37, 4, 3, "#f2a6c8");
+  }
+}
+
+/* ---------- 同步 ---------- */
+async function poll() {
+  try {
+    const r = await fetch(`/api/state?since=${lastId}&save=${encodeURIComponent(SAVE)}`);
+    if (r.status === 404) { location.href = "/"; return; }
+    const j = await r.json();
+    applyPlayers(j.players);
+    if (!SAVE) { SAVE = j.save.id; history.replaceState(null, "", `/play?save=${encodeURIComponent(SAVE)}`); }
+    if (lastId === 0) { $("#saveName").textContent = j.save.name; document.title = `${j.save.name} · 阿卡姆夜桌`; }
+    const sheetsChanged = JSON.stringify(j.sheets) !== JSON.stringify(state.sheets);
+    const sceneChanged = JSON.stringify(j.scene) !== JSON.stringify(state.scene);
+    state.sheets = j.sheets; state.table = j.table;
+    if (sceneChanged) { state.scene = j.scene; $("#sceneTitle").textContent = j.scene.title; $("#scenePlace").textContent = j.scene.place; drawArt(j.scene.art); }
+    if (sheetsChanged && editing === null) renderSheets();
+    addEntries(j.log);
+    renderNotes(j.notes || []);
+    renderTurn(j.turn || {});
+    $("#paused").classList.toggle("on", !!j.table.paused);
+    $("#pausedBy").textContent = j.table.paused ? `${NAMES[j.table.by] || ""} 叫停了` : "";
+  } catch (e) { $("#err").textContent = "连不上桌子：" + e.message; }
+}
+
+function renderTurn(turn) {
+  const b = $("#readyKeeper");
+  if (me === "keeper") return;
+  const waiting = turn.status === "ready";
+  b.disabled = waiting || !!state.table.paused;
+  b.classList.toggle("waiting", waiting);
+  b.textContent = waiting ? "🔔 已确认 · 等待守密人" : "🔔 行动确认 · 请守密人主持";
+  b.title = waiting ? "确认已保留，等待守密人回应；重复点击不会重复记录。" : "你们商量好这一轮行动后按一次；守密人会看到确认。";
+}
+
+$("#send").onclick = async () => {
+  const text = $("#text").value.trim(); if (!text) return;
+  await post("/api/say", { text, kind: $("#kind").value });
+  $("#text").value = "";
+};
+$("#text").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) $("#send").click(); });
+/* ---------- 调查札记 ---------- */
+let notesKey = "";
+function renderNotes(notes) {
+  const key = JSON.stringify(notes); if (key === notesKey) return; notesKey = key;
+  const ol = $("#notes"), atBottom = ol.scrollHeight - ol.scrollTop - ol.clientHeight < 30;
+  ol.innerHTML = notes.map((n) => `<li class="${n.who}">${esc(n.text)}${me !== "keeper" ? `<span class="x" data-del="${n.id}" title="删掉这条">✕</span>` : ""}</li>`).join("")
+    || `<li style="list-style:none;color:var(--dim)">还没有线索。</li>`;
+  ol.querySelectorAll("[data-del]").forEach((x) => x.onclick = () => post("/api/note", { delete: +x.dataset.del }));
+  if (atBottom) ol.scrollTop = ol.scrollHeight;
+}
+$("#noteBtn").onclick = async () => {
+  const t = $("#noteText").value.trim(); if (!t) return;
+  await post("/api/note", { text: t }); $("#noteText").value = "";
+};
+$("#noteText").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) $("#noteBtn").click(); });
+
+/* ---------- 复制新记录：贴给不在网页上的守密人（比如另一个聊天窗口里的 AI） ---------- */
+let allEntries = [];
+function plain(e) {
+  const w = NAMES[e.who] || "";
+  switch (e.type) {
+    case "check": return `${w} 🎲 ${e.label}（目标 ${e.target}${e.bonus ? `，${e.bonus > 0 ? "奖励骰" : "惩罚骰"}×${Math.abs(e.bonus)}` : ""}）→ ${e.result}，${e.grade_name}`;
+    case "dice": return `${w} 🎲 ${e.label} ${e.expr} → ${e.total}`;
+    case "scene": return `—— 场景：${e.text} ——`;
+    case "san": return `🧠 ${sheetName(e.target)} 的理智 ${e.from} → ${e.to}`;
+    case "narrate": return `【${NAMES.keeper}·旁白】${e.text}`;
+    case "ooc": return `[场外] ${w}：${e.text}`;
+    case "hidden": case "pause": case "resume": return e.text;
+    case "turn_ready": return `🔔 ${e.text}`;
+    default: return `${w}：${e.text}`;
+  }
+}
+$("#copyKeeper").onclick = async () => {
+  let from = 0;
+  try { from = +localStorage.getItem("arkham-night-copied-" + SAVE) || 0; } catch (e) {}
+  if (from > lastId) from = 0; // 记录被清空重开过
+  const fresh = allEntries.filter((e) => e.id > from && e.who !== "keeper");
+  const sheets = INV.map((k) => {
+    const s = state.sheets[k];
+    return `${NAMES[k]}：${s.name || "未命名"} HP ${s.hp[0]}/${s.hp[1]} SAN ${s.san[0]} 幸运 ${s.luck}`;
+  }).join("\n");
+  const text = `〔Arkham Night · 轮到你了，守密人〕\n${fresh.length ? fresh.map(plain).join("\n") : "（上次之后没有新动作）"}\n\n〔调查员状态〕\n${sheets}`;
+  try {
+    await navigator.clipboard.writeText(text);
+    try { localStorage.setItem("arkham-night-copied-" + SAVE, String(lastId)); } catch (e) {}
+    $("#err").style.color = "var(--good)"; $("#err").textContent = `复制好了（${fresh.length} 条），去贴给守密人吧`;
+    setTimeout(() => { $("#err").style.color = ""; $("#err").textContent = ""; }, 3000);
+  } catch (e) { $("#err").textContent = "复制失败：" + e.message; }
+};
+
+$("#readyKeeper").onclick = async () => {
+  try {
+    await post("/api/turn-ready", {});
+    $("#err").style.color = "var(--good)";
+    $("#err").textContent = "行动已确认并保留，等待守密人接手。";
+    setTimeout(() => { $("#err").style.color = ""; $("#err").textContent = ""; }, 3000);
+  } catch (e) { /* post already shows the reason */ }
+};
+
+$("#sound").onclick = () => Ambient.toggleMusic();
+$("#rain").onclick = () => Ambient.toggleRain();
+Ambient.onChange((s) => {
+  $("#sound").classList.toggle("on", s.playing.music);
+  $("#sound").title = s.playing.music ? `背景音乐：${Ambient.tracks[s.track].name}（点一下关掉）` : "背景音乐（点一下打开）";
+  $("#rain").classList.toggle("on", s.playing.rain);
+});
+Ambient.init("table");
+
+$("#safe").onclick = () => post("/api/table", { action: "pause" });
+$("#resume").onclick = () => post("/api/table", { action: "resume" });
+$("#kpScene").onclick = () => post("/api/scene", { title: $("#kpTitle").value || "无题", place: $("#kpPlace").value, art: $("#kpArt").value });
+$("#kpHidden").onclick = () => post("/api/roll", { label: "暗骰", target: +$("#kpHiddenTarget").value, hidden: true });
+
+applyMe(); drawArt("table"); poll(); setInterval(poll, 2000);
+</script>
+</body>
+</html>

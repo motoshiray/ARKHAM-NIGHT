@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arkham Night · 阿卡姆夜桌</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=Noto+Serif+SC:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #ece4d2;
+  --dim: #b3a6c9;
+  --gold: #c9a56a;
+  --gold-soft: #8a6d45;
+  --panel: rgba(20, 14, 32, 0.92);
+  --glow: 0 0 18px rgba(255, 214, 150, 0.45), inset 0 0 14px rgba(255, 214, 150, 0.18);
+  --font: "Noto Serif SC", "Songti SC", serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: #0d0a14; color: var(--ink); font-family: var(--font); overflow: hidden; }
+
+/* 首页图：整张放下不裁，四周用糊掉的同一张图填 */
+body::before {
+  content: ""; position: fixed; inset: -40px;
+  background: url("/assets/home.png") center / cover no-repeat;
+  filter: blur(28px) brightness(0.45) saturate(0.7);
+}
+#stage {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(100vw, 150vh); aspect-ratio: 3 / 2;
+  background: url("/assets/home.png") center / 100% 100% no-repeat;
+  box-shadow: 0 0 80px #000;
+}
+
+/* 图上画好的按钮：上面盖一层看不见的真按钮，鼠标移上去才亮 */
+.hot {
+  position: absolute; background: transparent; border: 0; padding: 0; cursor: pointer;
+  border-radius: 6px; transition: box-shadow .25s, background .25s;
+  color: transparent; font-size: 1px;
+}
+.hot:hover, .hot:focus-visible { box-shadow: var(--glow); background: rgba(255, 220, 160, 0.06); outline: none; }
+#bNew   { left: 70.3%; top: 49.4%; width: 23.7%; height: 8.8%; }
+#bLoad  { left: 70.3%; top: 61.0%; width: 23.7%; height: 8.8%; }
+#bRules { left: 77.6%; top: 73.2%; width: 11%;  height: 5%; }
+#bSet   { left: 77.6%; top: 79.3%; width: 11%;  height: 5%; }
+#bExit  { left: 77.6%; top: 85.0%; width: 11%;  height: 5%; }
+
+#sound {
+  position: fixed; right: 14px; bottom: 12px; z-index: 5;
+  background: rgba(20, 14, 32, 0.7); color: var(--dim); border: 1px solid var(--gold-soft);
+  border-radius: 20px; padding: 4px 12px; font: 13px var(--font); cursor: pointer;
+}
+#sound.on { color: var(--gold); }
+#legal { position: fixed; left: 12px; right: 150px; bottom: 10px; z-index: 4; font-size: 10px; line-height: 1.4; color: var(--dim); opacity: .6; }
+
+/* 弹层 */
+.veil { position: fixed; inset: 0; z-index: 10; background: rgba(8, 5, 14, 0.72); display: flex; align-items: center; justify-content: center; padding: 16px; animation: fade .3s; }
+@keyframes fade { from { opacity: 0; } }
+.panel {
+  background: var(--panel); border: 1px solid var(--gold-soft); outline: 1px solid rgba(201, 165, 106, 0.25); outline-offset: 4px;
+  width: min(920px, 100%); max-height: min(86vh, 760px); overflow: auto; padding: 22px 26px; position: relative;
+  box-shadow: 0 20px 60px #000c;
+}
+.panel h2 { margin: 0 0 4px; font-weight: 600; letter-spacing: 4px; color: var(--gold); text-align: center; }
+.panel .sub { text-align: center; color: var(--dim); font-family: "Cinzel", serif; font-size: 11px; letter-spacing: 3px; margin-bottom: 18px; }
+.close { position: absolute; right: 14px; top: 10px; background: none; border: 0; color: var(--dim); font-size: 22px; cursor: pointer; }
+.close:hover { color: var(--gold); }
+.btn {
+  font: 15px var(--font); color: var(--ink); background: rgba(60, 44, 86, 0.6);
+  border: 1px solid var(--gold-soft); padding: 8px 22px; cursor: pointer; letter-spacing: 2px;
+}
+.btn:hover { box-shadow: var(--glow); }
+input.field, select.field { font: 15px var(--font); color: var(--ink); background: rgba(0, 0, 0, 0.35); border: 1px solid var(--gold-soft); padding: 8px 12px; width: 100%; }
+
+/* 存档格子 */
+.slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.slot {
+  border: 1px solid var(--gold-soft); background: rgba(0, 0, 0, 0.3); cursor: pointer; text-align: left;
+  color: var(--ink); font-family: var(--font); padding: 0; display: flex; flex-direction: column; transition: box-shadow .2s, transform .2s;
+}
+.slot:hover { box-shadow: var(--glow); transform: translateY(-2px); }
+.slot .pic { aspect-ratio: 3 / 2; background: #000 center / cover no-repeat; position: relative; }
+.slot .pic .tag { position: absolute; left: 8px; top: 8px; background: rgba(20, 14, 32, 0.85); border: 1px solid var(--gold-soft); color: var(--gold); font-size: 11px; padding: 1px 8px; }
+.slot .pic .where { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 10px 6px; background: linear-gradient(transparent, rgba(10, 6, 18, 0.95)); font-size: 13px; }
+.slot .body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 5px; }
+.slot .name { font-size: 17px; font-weight: 600; color: var(--gold); }
+.slot .cast { font-size: 12px; color: var(--dim); }
+.slot .last { font-size: 12px; color: #d6cbe6; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.9em; }
+.slot .stats { display: flex; gap: 10px; font-size: 12px; color: var(--dim); flex-wrap: wrap; }
+.slot .stats b { color: var(--ink); font-weight: 400; }
+.slot .time { font-size: 11px; color: var(--dim); text-align: right; font-family: "Cinzel", serif; letter-spacing: 1px; }
+.empty { text-align: center; color: var(--dim); padding: 30px; }
+
+.rules { line-height: 1.85; font-size: 14px; }
+.rules h3 { color: var(--gold); font-size: 15px; margin: 18px 0 4px; font-weight: 600; }
+.rules table { border-collapse: collapse; margin: 6px 0; }
+.rules td { border: 1px solid var(--gold-soft); padding: 3px 12px; }
+.row { display: flex; align-items: center; gap: 14px; margin: 14px 0; }
+.row label { width: 90px; color: var(--dim); }
+
+#bye { position: fixed; inset: 0; z-index: 20; background: #000; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 18px; font-size: 20px; letter-spacing: 6px; color: var(--dim); animation: fade 1.2s; }
+#bye small { font-size: 12px; letter-spacing: 2px; cursor: pointer; text-decoration: underline; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <button class="hot" id="bNew">开始新游戏</button>
+  <button class="hot" id="bLoad">继续游戏</button>
+  <button class="hot" id="bRules">规则说明</button>
+  <button class="hot" id="bSet">设置</button>
+  <button class="hot" id="bExit">退出</button>
+</div>
+<button id="sound" data-ambient>♪ 音乐：关</button>
+<div id="legal">Unofficial fan project. Not affiliated with, published, endorsed, or specifically approved by Chaosium Inc. 非官方同人作品，与 Chaosium Inc. 无关。</div>
+
+<!-- 继续游戏：存档格子 -->
+<div class="veil" id="vLoad" hidden>
+  <div class="panel">
+    <button class="close" data-close>×</button>
+    <h2>读取存档</h2>
+    <div class="sub">CONTINUE</div>
+    <div class="slots" id="slots"></div>
+  </div>
+</div>
+
+<!-- 开始新游戏 -->
+<div class="veil" id="vNew" hidden>
+  <div class="panel" style="width:min(460px,100%)">
+    <button class="close" data-close>×</button>
+    <h2>新的调查</h2>
+    <div class="sub">NEW GAME</div>
+    <div class="row"><label>存档名</label><input class="field" id="newName" placeholder="比如：雾港·第一夜"></div>
+    <div class="row"><label>谁在桌上</label><input class="field" id="newCast" placeholder="比如：调查员 A · 调查员 B ｜ 守密人"></div>
+    <div style="color:var(--dim);font-size:12px;margin:-4px 0 16px 104px">新存档会是一张空桌子，角色要重新捏。</div>
+    <div style="text-align:center"><button class="btn" id="newGo">开始</button></div>
+  </div>
+</div>
+
+<!-- 规则说明 -->
+<div class="veil" id="vRules" hidden>
+  <div class="panel" style="width:min(640px,100%)">
+    <button class="close" data-close>×</button>
+    <h2>规则说明</h2>
+    <div class="sub">HOW THE DICE WORK</div>
+    <div class="rules">
+      <h3>掷骰</h3>
+      想做一件结果不确定的事，就掷 d100，<b>越小越好</b>。比如侦查 65：
+      <table>
+        <tr><td>01</td><td>大成功</td></tr>
+        <tr><td>≤ 13（五分之一）</td><td>极难成功</td></tr>
+        <tr><td>≤ 32（一半）</td><td>困难成功</td></tr>
+        <tr><td>≤ 65</td><td>成功</td></tr>
+        <tr><td>&gt; 65</td><td>失败</td></tr>
+        <tr><td>100（技能低于 50 时 96–100）</td><td>大失败</td></tr>
+      </table>
+      <h3>奖励骰 / 惩罚骰</h3>
+      队友帮忙、准备充分时，守密人可能给奖励骰：多掷一个十位，取小的。处境不利时是惩罚骰，取大的。
+      <h3>再试一次</h3>
+      失败以后，换个法子再掷同一个技能。但要是又失败了，后果会更重。
+      <h3>理智（SAN）</h3>
+      看见不该看的东西会掉理智。掉得太多太快，人会崩溃。理智很难补回来。
+      <h3>分工</h3>
+      调查员说自己想做什么；守密人决定要不要掷、掷什么，然后讲结果。不确定的时候，问守密人就好。
+      <h3>🛟 安全暂停</h3>
+      任何人点右上角的「叫停」按钮，整桌立刻停下，不问理由。开局前也可以约定一个你们自己的安全词。
+    </div>
+  </div>
+</div>
+
+<!-- 设置 -->
+<div class="veil" id="vSet" hidden>
+  <div class="panel" style="width:min(460px,100%)">
+    <button class="close" data-close>×</button>
+    <h2>设置</h2>
+    <div class="sub">SETTINGS</div>
+    <div class="row"><label>音乐</label><button class="btn" id="setMusic" data-ambient>打开</button></div>
+    <div class="row"><label>雨声</label><button class="btn" id="setRain" data-ambient>打开</button></div>
+    <div class="row"><label>桌上曲目</label>
+      <select class="field" id="setTrack" style="flex:1">
+        <option value="curious">8-bit Curious Theme（复古、可循环）</option>
+        <option value="contemplation">Contemplation（安静、几乎没有旋律）</option>
+      </select>
+    </div>
+    <div class="row"><label>音量</label><input type="range" id="setVol" min="0" max="1" step="0.05" style="flex:1"></div>
+    <div style="color:var(--dim);font-size:12px;line-height:1.7">
+      首页放 Moil，进到桌子里换成上面选的曲目。雨声可以叠在音乐底下，也可以单独开。默认都关着。<br>
+      曲子都是 opengameart.org 上的 CC0：Moil — Ruskerdax ｜ 8-bit Curious Theme — emanresU ｜ Contemplation — Joth ｜ Dark Rainy Night — kindland
+    </div>
+  </div>
+</div>
+
+<div id="bye" hidden>今晚就到这里<small id="byeBack">回到首页</small></div>
+
+<script src="/assets/ambient.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const ART = {
+  office: "scene-office.webp", street: "scene-street.webp", library: "scene-library.webp",
+  hall: "scene-hall.webp", chapel: "scene-chapel.webp", house: "scene-house.webp",
+  parlor: "scene-parlor.webp", corridor: "scene-corridor.webp", basement: "scene-basement.webp",
+  lamp: "scene-lamp.webp", harbor: "scene-harbor.png",
+};
+
+function open(id) { document.querySelectorAll(".veil").forEach((v) => v.hidden = v.id !== id); }
+function closeAll() { document.querySelectorAll(".veil").forEach((v) => v.hidden = true); }
+document.querySelectorAll("[data-close]").forEach((b) => b.onclick = closeAll);
+document.querySelectorAll(".veil").forEach((v) => v.addEventListener("click", (e) => { if (e.target === v) closeAll(); }));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeAll(); });
+
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function when(iso) {
+  if (!iso) return "";
+  const d = new Date(iso.replace(/([+-]\d\d)(\d\d)$/, "$1:$2"));
+  if (isNaN(d)) return iso.slice(0, 16);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())}  ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+async function loadSlots() {
+  const box = $("#slots");
+  box.innerHTML = `<div class="empty">翻找存档中……</div>`;
+  const { saves } = await (await fetch("/api/saves")).json();
+  if (!saves.length) { box.innerHTML = `<div class="empty">还没有存档。去开始一场新的调查吧。</div>`; return; }
+  box.innerHTML = saves.map((s) => {
+    const art = ART[s.scene.art] ? `/assets/${ART[s.scene.art]}` : "/assets/home.png";
+    const inv = s.investigators.filter((i) => i.name).map((i) => `<span><b>${esc(i.name)}</b> HP ${i.hp[0]} · SAN ${i.san[0]}</span>`).join("")
+      || `<span>还没捏人</span>`;
+    return `<button class="slot" data-id="${esc(s.id)}">
+      <div class="pic" style="background-image:url('${art}')">
+        ${s.current ? `<span class="tag">上次玩的</span>` : ""}
+        <div class="where">${esc(s.scene.title || "开场之前")}${s.scene.place ? ` · ${esc(s.scene.place)}` : ""}</div>
+      </div>
+      <div class="body">
+        <div class="name">${esc(s.name)}</div>
+        ${s.cast ? `<div class="cast">${esc(s.cast)}</div>` : ""}
+        <div class="last">${s.last ? "「" + esc(s.last) + "」" : "故事还没开始。"}</div>
+        <div class="stats">${inv}</div>
+        <div class="stats"><span>记录 <b>${s.entries}</b> 条</span><span>札记 <b>${s.notes}</b> 条</span></div>
+        <div class="time">${when(s.updated)}</div>
+      </div>
+    </button>`;
+  }).join("");
+  box.querySelectorAll(".slot").forEach((b) => b.onclick = async () => {
+    await fetch("/api/saves", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "select", id: b.dataset.id }) });
+    location.href = `/play?save=${encodeURIComponent(b.dataset.id)}`;
+  });
+}
+
+$("#bLoad").onclick = () => { open("vLoad"); loadSlots(); };
+$("#bNew").onclick = () => { open("vNew"); setTimeout(() => $("#newName").focus(), 50); };
+$("#bRules").onclick = () => open("vRules");
+$("#bSet").onclick = () => open("vSet");
+$("#bExit").onclick = () => { Ambient.stopAll(); $("#bye").hidden = false; };
+$("#byeBack").onclick = () => { $("#bye").hidden = true; };
+
+$("#newGo").onclick = async () => {
+  const r = await fetch("/api/saves", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "create", name: $("#newName").value, cast: $("#newCast").value }) });
+  const j = await r.json();
+  if (j.ok) location.href = `/play?save=${encodeURIComponent(j.data.id)}`;
+};
+
+function paintSound(s) {
+  const on = s.playing.music;
+  $("#sound").textContent = on ? "♪ 音乐：开" : (s.music ? "♪ 点一下任意处就响" : "♪ 音乐：关");
+  $("#sound").classList.toggle("on", on);
+  $("#setMusic").textContent = on ? "关掉" : "打开";
+  $("#setRain").textContent = s.playing.rain ? "关掉" : "打开";
+  $("#setTrack").value = s.track;
+  $("#setVol").value = s.vol;
+}
+$("#sound").onclick = $("#setMusic").onclick = () => Ambient.toggleMusic();
+$("#setRain").onclick = () => Ambient.toggleRain();
+$("#setTrack").onchange = (e) => Ambient.setTrack(e.target.value);
+$("#setVol").oninput = (e) => Ambient.setVolume(+e.target.value);
+Ambient.onChange(paintSound);
+Ambient.init("home");
+</script>
+</body>
+</html>

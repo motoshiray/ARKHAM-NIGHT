@@ -1,0 +1,8 @@
+data/
+data.bak-*/
+keeper/
+.private/
+__pycache__/
+*.pyc
+.DS_Store
+NOTES_FOR_README.md

@@ -1,0 +1,5 @@
+{
+  "player1": { "name": "调查员 A", "role": "investigator", "color": "#f2a6c8", "avatar": "/assets/avatar-player1.png" },
+  "player2": { "name": "调查员 B", "role": "investigator", "color": "#7fb8ff", "avatar": "/assets/avatar-player2.png" },
+  "keeper":  { "name": "守密人",   "role": "keeper",       "color": "#b9a3ff" }
+}
