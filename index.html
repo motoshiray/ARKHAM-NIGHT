@@ -488,7 +488,7 @@ async function poll() {
     const j = await r.json();
     applyPlayers(j.players);
     if (!SAVE) { SAVE = j.save.id; history.replaceState(null, "", `/play?save=${encodeURIComponent(SAVE)}`); }
-    if (lastId === 0) { $("#saveName").textContent = j.save.name; document.title = `${j.save.name} · 阿卡姆夜桌`; }
+    if (lastId === 0) { $("#saveName").textContent = j.save.module ? `${j.save.name} · ${j.save.module.name}` : j.save.name; document.title = `${j.save.name} · 阿卡姆夜桌`; }
     const sheetsChanged = JSON.stringify(j.sheets) !== JSON.stringify(state.sheets);
     const sceneChanged = JSON.stringify(j.scene) !== JSON.stringify(state.scene);
     state.sheets = j.sheets; state.table = j.table;

@@ -90,6 +90,12 @@ input.field, select.field { font: 15px var(--font); color: var(--ink); backgroun
 .slot .stats { display: flex; gap: 10px; font-size: 12px; color: var(--dim); flex-wrap: wrap; }
 .slot .stats b { color: var(--ink); font-weight: 400; }
 .slot .time { font-size: 11px; color: var(--dim); text-align: right; font-family: "Cinzel", serif; letter-spacing: 1px; }
+.slot .meta { font-size: 11px; color: var(--dim); }
+.slot .en { font-family: "Cinzel", serif; font-size: 11px; color: var(--dim); letter-spacing: 1px; }
+.picked { display: flex; gap: 14px; align-items: center; border: 1px solid var(--gold-soft); padding: 10px; margin-bottom: 8px; background: rgba(0,0,0,.3); }
+.picked img { width: 120px; aspect-ratio: 3 / 2; object-fit: cover; border: 1px solid var(--gold-soft); }
+.picked .name { color: var(--gold); font-size: 17px; font-weight: 600; }
+.modtag { position: absolute; right: 8px; top: 8px; background: rgba(20, 14, 32, 0.85); border: 1px solid var(--gold-soft); color: var(--ink); font-size: 11px; padding: 1px 8px; }
 .empty { text-align: center; color: var(--dim); padding: 30px; }
 
 .rules { line-height: 1.85; font-size: 14px; }
@@ -126,14 +132,26 @@ input.field, select.field { font: 15px var(--font); color: var(--ink); backgroun
 
 <!-- 开始新游戏 -->
 <div class="veil" id="vNew" hidden>
-  <div class="panel" style="width:min(460px,100%)">
+  <div class="panel" id="newPanel">
     <button class="close" data-close>×</button>
     <h2>新的调查</h2>
     <div class="sub">NEW GAME</div>
-    <div class="row"><label>存档名</label><input class="field" id="newName" placeholder="比如：雾港·第一夜"></div>
-    <div class="row"><label>谁在桌上</label><input class="field" id="newCast" placeholder="比如：调查员 A · 调查员 B ｜ 守密人"></div>
-    <div style="color:var(--dim);font-size:12px;margin:-4px 0 16px 104px">新存档会是一张空桌子，角色要重新捏。</div>
-    <div style="text-align:center"><button class="btn" id="newGo">开始</button></div>
+    <!-- 第一步：选模组 -->
+    <div id="newStep1">
+      <div style="text-align:center;color:var(--dim);font-size:13px;margin:-6px 0 14px">先选今晚要进的故事</div>
+      <div class="slots" id="modules"></div>
+    </div>
+    <!-- 第二步：起名 -->
+    <div id="newStep2" hidden>
+      <div class="picked" id="picked"></div>
+      <div class="row"><label>存档名</label><input class="field" id="newName" placeholder="比如：雾港·第一夜"></div>
+      <div class="row"><label>谁在桌上</label><input class="field" id="newCast" placeholder="比如：调查员 A · 调查员 B ｜ 守密人"></div>
+      <div style="color:var(--dim);font-size:12px;margin:-4px 0 16px 104px">新存档会是一张空桌子，角色要重新捏。</div>
+      <div style="text-align:center;display:flex;gap:12px;justify-content:center">
+        <button class="btn" id="newBack">← 换一个</button>
+        <button class="btn" id="newGo">开始</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -229,6 +247,7 @@ async function loadSlots() {
     return `<button class="slot" data-id="${esc(s.id)}">
       <div class="pic" style="background-image:url('${art}')">
         ${s.current ? `<span class="tag">上次玩的</span>` : ""}
+        ${s.module ? `<span class="modtag">${esc(s.module.name)}</span>` : ""}
         <div class="where">${esc(s.scene.title || "开场之前")}${s.scene.place ? ` · ${esc(s.scene.place)}` : ""}</div>
       </div>
       <div class="body">
@@ -248,7 +267,35 @@ async function loadSlots() {
 }
 
 $("#bLoad").onclick = () => { open("vLoad"); loadSlots(); };
-$("#bNew").onclick = () => { open("vNew"); setTimeout(() => $("#newName").focus(), 50); };
+let pickedModule = null;
+async function loadModules() {
+  const box = $("#modules");
+  box.innerHTML = `<div class="empty">翻找剧本中……</div>`;
+  const { modules } = await (await fetch("/api/modules")).json();
+  const all = [...modules, { id: "", name: "自由故事", en: "No module", blurb: "不用现成剧本，让守密人现编一个。", cover: "/assets/scene-street.webp" }];
+  box.innerHTML = all.map((m, i) => `<button class="slot" data-i="${i}">
+      <div class="pic" style="background-image:url('${esc(m.cover || "/assets/home.png")}')"></div>
+      <div class="body">
+        <div class="name">${esc(m.name)}</div>
+        ${m.en ? `<div class="en">${esc(m.en)}</div>` : ""}
+        <div class="last" style="font-style:normal">${esc(m.blurb || "")}</div>
+        ${m.players ? `<div class="meta">${esc(m.players)} ｜ ${esc(m.length || "")}</div>` : ""}
+      </div>
+    </button>`).join("");
+  box.querySelectorAll(".slot").forEach((b) => b.onclick = () => pickModule(all[+b.dataset.i]));
+}
+function pickModule(m) {
+  pickedModule = m;
+  $("#picked").innerHTML = `<img src="${esc(m.cover || "/assets/home.png")}" alt=""><div><div class="name">${esc(m.name)}</div><div class="en">${esc(m.en || "")}</div></div>`;
+  if (!$("#newName").value) $("#newName").placeholder = `比如：${m.name}·第一夜`;
+  $("#newStep1").hidden = true; $("#newStep2").hidden = false; $("#newPanel").style.width = "min(520px,100%)";
+  setTimeout(() => $("#newName").focus(), 50);
+}
+$("#newBack").onclick = () => { $("#newStep2").hidden = true; $("#newStep1").hidden = false; $("#newPanel").style.width = ""; };
+$("#bNew").onclick = () => {
+  pickedModule = null; $("#newStep2").hidden = true; $("#newStep1").hidden = false; $("#newPanel").style.width = "";
+  open("vNew"); loadModules();
+};
 $("#bRules").onclick = () => open("vRules");
 $("#bSet").onclick = () => open("vSet");
 $("#bExit").onclick = () => { Ambient.stopAll(); $("#bye").hidden = false; };
@@ -256,7 +303,8 @@ $("#byeBack").onclick = () => { $("#bye").hidden = true; };
 
 $("#newGo").onclick = async () => {
   const r = await fetch("/api/saves", { method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "create", name: $("#newName").value, cast: $("#newCast").value }) });
+    body: JSON.stringify({ action: "create", name: $("#newName").value || $("#newName").placeholder.replace(/^比如：/, ""),
+      cast: $("#newCast").value, module: pickedModule ? pickedModule.id : "" }) });
   const j = await r.json();
   if (j.ok) location.href = `/play?save=${encodeURIComponent(j.data.id)}`;
 };

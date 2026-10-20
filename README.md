@@ -110,6 +110,37 @@ AI 不会自己醒，**每一轮都要有人叫它**。一般是这样：
 
 ---
 
+## 模组（剧本）
+
+点 **开始新游戏** 以后，第一步先选今晚玩哪个故事。每个存档会记住自己的模组，存档格子和桌子顶上都会显示。
+
+目录写在项目根目录的 `modules.json` 里，自带两个 Chaosium 官方免费的入门模组：
+
+| id | 模组 | 剧本去哪拿 |
+|---|---|---|
+| `haunting` | 凶宅 *The Haunting* | Call of Cthulhu 快速入门规则（Quick-Start Rules）里自带 |
+| `lightless-beacon` | 无光灯塔 *The Lightless Beacon* | [chaosium.itch.io/the-lightless-beacon](https://chaosium.itch.io/the-lightless-beacon) |
+
+还有一个 **自由故事**：不用现成剧本，让守密人现编。
+
+⚠ **剧本本身不在这个项目里**（那是 Chaosium 的版权作品）。请自己从官方下载，放进守密人的抽屉 `keeper/modules/<id>/`，调查员说好不看。
+
+想加别的模组，就在 `modules.json` 里加一项：
+
+```json
+{
+  "id": "my-module",
+  "name": "显示名",
+  "en": "English Title",
+  "blurb": "一两句不剧透的简介",
+  "players": "2–4 名调查员",
+  "length": "一晚",
+  "cover": "/assets/你的封面.webp"
+}
+```
+
+`modules.json` 会通过 `/api/modules` 原样发给所有人看，**只放玩家可以知道的信息**，剧本内容、守密人笔记、私人文件路径都别往里写。改完不用重启。
+
 ## 捏角色
 
 新存档里的角色卡是空的。属性可以这样掷：
@@ -154,6 +185,7 @@ AI 不会自己醒，**每一轮都要有人叫它**。一般是这样：
 | `backdrop-mansion.webp` | 桌子页面的背景 |
 | `scene-*.webp`、`scene-harbor.png` | 守密人切换的场景图，也用作存档缩略图（见下表） |
 | `avatar-player1.png`、`avatar-player2.png` | 两位调查员的默认头像 |
+| `module-lightless-beacon.webp` | 「无光灯塔」模组的封面（为本项目原创绘制） |
 
 ⚠ 首页的按钮是在 `home.png` 上盖了一层看不见的真按钮，位置写在 `home.html` 里（`#bNew` 等，用百分比定位）。换了首页图，要跟着挪这几个百分比，不然点不准。
 

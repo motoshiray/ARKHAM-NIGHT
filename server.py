@@ -174,6 +174,7 @@ def save_summary(sd):
         "id": sd.name,
         "name": meta.get("name", sd.name),
         "cast": meta.get("cast", ""),
+        "module": module_brief(meta.get("module", "")),
         "created": meta.get("created"),
         "updated": meta.get("updated"),
         "scene": scene,
@@ -184,6 +185,19 @@ def save_summary(sd):
         "last": last[:120],
         "current": sd.name == current_save(),
     }
+
+
+def load_modules():
+    """modules.json：可选的模组（剧本）目录。只放玩家可知的信息；剧本本身放 keeper/modules/<id>/ 给守密人。"""
+    mods = read_json(ROOT / "modules.json", [])
+    return [m for m in mods if isinstance(m, dict) and SAVE_RE.match(str(m.get("id", "")))]
+
+
+def module_brief(mid):
+    for m in load_modules():
+        if m["id"] == mid:
+            return {"id": m["id"], "name": m.get("name", m["id"]), "cover": m.get("cover", "")}
+    return None
 
 
 def list_saves():
@@ -197,11 +211,15 @@ def handle_saves(body):
     with LOCK:
         if action == "create":
             name = str(body.get("name", "")).strip()[:40] or "新的调查"
+            module = str(body.get("module", "")).strip()
+            if module and not module_brief(module):
+                raise ValueError("没有这个模组")
             sid = "s" + time.strftime("%Y%m%d-%H%M%S")
             sd = SAVES / sid
             sd.mkdir()
             write_json(sd / "meta.json", {"name": name, "created": now(), "updated": now(),
-                                          "cast": str(body.get("cast", "")).strip()[:60]})
+                                          "cast": str(body.get("cast", "")).strip()[:60],
+                                          "module": module})
             (DATA / "current.txt").write_text(sid, "utf-8")
             return save_summary(sd)
         if action == "select":
@@ -510,6 +528,8 @@ class H(BaseHTTPRequestHandler):
             return self.send(404, {"error": "not found"})
         if u.path == "/api/players":
             return self.send(200, {"players": PLAYERS})
+        if u.path == "/api/modules":
+            return self.send(200, {"modules": load_modules()})
         if u.path == "/api/saves":
             return self.send(200, {"saves": list_saves(), "current": current_save(), "players": PLAYERS})
         if u.path == "/api/state":

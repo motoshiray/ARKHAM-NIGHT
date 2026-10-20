@@ -1,0 +1,22 @@
+[
+  {
+    "id": "haunting",
+    "name": "凶宅",
+    "en": "The Haunting",
+    "blurb": "1920 年代的波士顿，一栋接连出事的老房子。查旧报纸、翻档案、找人问话，最后走进那栋房子。适合第一次跑团。",
+    "players": "1–4 名调查员",
+    "length": "一到两晚",
+    "cover": "/assets/scene-house.webp",
+    "source": "Chaosium 官方免费的 Call of Cthulhu 快速入门规则（Quick-Start Rules）里自带。剧本不在本项目里，请自行到 chaosium.com 获取。"
+  },
+  {
+    "id": "lightless-beacon",
+    "name": "无光灯塔",
+    "en": "The Lightless Beacon",
+    "blurb": "1926 年，灯塔突然熄灭，风暴中的旅客被迫登岛。循着线索寻找庇护，在黑暗与海浪间共度险夜。",
+    "players": "2–6 名调查员（推荐 4 人）",
+    "length": "约 1 小时起，可扩展至 2–3 小时",
+    "cover": "/assets/module-lightless-beacon.webp",
+    "source": "Chaosium 官方免费 PDF。剧本不在本项目里，请自行到 https://chaosium.itch.io/the-lightless-beacon 获取。"
+  }
+]
